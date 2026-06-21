@@ -1,0 +1,26 @@
+{
+  "name": "puzzle-closet",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~56.0.12",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "JAVA_HOME=/home/rowena001/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2 ANDROID_HOME=/home/rowena001/Android/Sdk PATH=/home/rowena001/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2/bin:/home/rowena001/Android/Sdk/platform-tools:$PATH expo run:android",
+    "android:native": "JAVA_HOME=/home/rowena001/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2 ANDROID_HOME=/home/rowena001/Android/Sdk PATH=/home/rowena001/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2/bin:/home/rowena001/Android/Sdk/platform-tools:$PATH expo run:android",
+    "android:native-release": "JAVA_HOME=/home/rowena001/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2 ANDROID_HOME=/home/rowena001/Android/Sdk PATH=/home/rowena001/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2/bin:/home/rowena001/Android/Sdk/platform-tools:$PATH expo run:android --variant release",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}
