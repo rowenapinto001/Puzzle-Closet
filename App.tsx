@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Animated,
   Easing,
+  Image,
+  ImageBackground,
   Modal,
   Pressable,
   ScrollView,
@@ -15,11 +17,16 @@ import {
   View,
 } from 'react-native';
 
-const STORAGE_KEY = 'puzzle-closet-save-v1';
+const STORAGE_KEY = 'puzzle-closet-save-v3';
 const MAX_LIVES = 5;
 const LIFE_REFRESH_MS = 5 * 60 * 60 * 1000;
 const CONTINUE_COST = 25;
 const LEVEL_COUNT = 100;
+const loadingBackgroundImage = require('./assets/cute puzzle game/loading page.png');
+const homeBackgroundImage = require('./assets/cute puzzle game/homepage.png');
+const house2ReferenceImage = require('./assets/cute puzzle game/house2 customer1.png');
+const princessKittyImage = require('./assets/cute puzzle game/kitty level2.png');
+const customerSpriteSheet = require('./assets/cute puzzle game/dummy characters .png');
 
 const palette = {
   cream: '#FFF8E8',
@@ -57,6 +64,7 @@ const levelOneGoal = {
   red: 1,
   white: 2,
   black: 1,
+  yellow: 1,
 } as const;
 const levelOneYarnColors = {
   blue: '#36AEEB',
@@ -64,12 +72,27 @@ const levelOneYarnColors = {
   red: '#FF6F91',
   white: '#FFFFFF',
   black: '#2F2A38',
+  yellow: '#FFE066',
+  pink: '#FF7DB3',
+  purple: '#A98BFF',
 } as const;
+const levelTwoGoal = {
+  white: 2,
+  pink: 3,
+  purple: 1,
+  yellow: 1,
+  blue: 1,
+  black: 1,
+} as const;
+const boutiqueRequests = ['skirt', 'shirt', 'jacket', 'tshirt', 'pant', 'top', 'scarf', 'dress', 'bag', 'hat'] as const;
 
 type Screen = 'home' | 'puzzle' | 'boutique' | 'levels' | 'settings';
 type ClothingType = (typeof clothingTypes)[number];
-type YarnColor = keyof typeof levelOneGoal;
+type YarnColor = keyof typeof levelOneYarnColors;
+type LevelOneGoalColor = keyof typeof levelOneGoal;
+type LevelTwoGoalColor = keyof typeof levelTwoGoal;
 type CatDirection = 'up' | 'down' | 'left' | 'right';
+type BoutiqueRequestType = (typeof boutiqueRequests)[number];
 
 type FashionItem = {
   id: string;
@@ -108,14 +131,27 @@ type LevelOneCat = {
 };
 
 const levelOneCats: LevelOneCat[] = [
-  { id: 'blue-1', color: 'blue', direction: 'right', start: { x: 20, y: 104 }, end: { x: 142, y: 104 } },
-  { id: 'blue-2', color: 'blue', direction: 'down', start: { x: 178, y: 20 }, end: { x: 178, y: 132 } },
-  { id: 'blue-3', color: 'blue', direction: 'left', start: { x: 294, y: 194 }, end: { x: 206, y: 194 } },
-  { id: 'orange-1', color: 'orange', direction: 'right', start: { x: 24, y: 222 }, end: { x: 138, y: 222 } },
-  { id: 'red-1', color: 'red', direction: 'left', start: { x: 298, y: 92 }, end: { x: 214, y: 92 } },
-  { id: 'white-1', color: 'white', direction: 'down', start: { x: 102, y: 26 }, end: { x: 102, y: 150 } },
-  { id: 'white-2', color: 'white', direction: 'up', start: { x: 238, y: 340 }, end: { x: 238, y: 226 } },
-  { id: 'black-1', color: 'black', direction: 'up', start: { x: 66, y: 342 }, end: { x: 66, y: 248 } },
+  { id: 'blue-1', color: 'blue', direction: 'right', start: { x: 18, y: 126 }, end: { x: 112, y: 126 } },
+  { id: 'blue-2', color: 'blue', direction: 'down', start: { x: 164, y: 18 }, end: { x: 164, y: 116 } },
+  { id: 'blue-3', color: 'blue', direction: 'left', start: { x: 296, y: 178 }, end: { x: 228, y: 178 } },
+  { id: 'white-1', color: 'white', direction: 'down', start: { x: 104, y: 18 }, end: { x: 104, y: 154 } },
+  { id: 'white-2', color: 'white', direction: 'left', start: { x: 296, y: 252 }, end: { x: 208, y: 252 } },
+  { id: 'red-1', color: 'red', direction: 'left', start: { x: 296, y: 106 }, end: { x: 198, y: 106 } },
+  { id: 'orange-1', color: 'orange', direction: 'right', start: { x: 22, y: 224 }, end: { x: 150, y: 224 } },
+  { id: 'black-1', color: 'black', direction: 'up', start: { x: 64, y: 342 }, end: { x: 144, y: 186 } },
+  { id: 'yellow-1', color: 'yellow', direction: 'up', start: { x: 152, y: 342 }, end: { x: 176, y: 260 } },
+];
+
+const levelTwoCats: LevelOneCat[] = [
+  { id: 'white-1', color: 'white', direction: 'right', start: { x: 18, y: 124 }, end: { x: 114, y: 124 } },
+  { id: 'white-2', color: 'white', direction: 'left', start: { x: 296, y: 124 }, end: { x: 214, y: 124 } },
+  { id: 'pink-1', color: 'pink', direction: 'down', start: { x: 150, y: 18 }, end: { x: 150, y: 156 } },
+  { id: 'pink-2', color: 'pink', direction: 'left', start: { x: 296, y: 216 }, end: { x: 216, y: 216 } },
+  { id: 'pink-3', color: 'pink', direction: 'right', start: { x: 20, y: 252 }, end: { x: 132, y: 252 } },
+  { id: 'purple-1', color: 'purple', direction: 'up', start: { x: 246, y: 342 }, end: { x: 246, y: 274 } },
+  { id: 'yellow-1', color: 'yellow', direction: 'down', start: { x: 206, y: 18 }, end: { x: 206, y: 104 } },
+  { id: 'blue-1', color: 'blue', direction: 'up', start: { x: 108, y: 342 }, end: { x: 108, y: 276 } },
+  { id: 'black-1', color: 'black', direction: 'left', start: { x: 296, y: 168 }, end: { x: 214, y: 168 } },
 ];
 
 const defaultGameState: GameState = {
@@ -123,7 +159,7 @@ const defaultGameState: GameState = {
   currentLevel: 1,
   lives: MAX_LIVES,
   coins: 0,
-  gems: 230,
+  gems: 0,
   clothes: [],
   lastLifeRefresh: Date.now(),
 };
@@ -144,6 +180,18 @@ function createFashionItem(level: number): FashionItem {
     color,
     pattern,
     price: 18 + ((level * 7) % 28),
+    sold: false,
+  };
+}
+
+function createPrincessKittyDress(): FashionItem {
+  return {
+    id: 'level-2-princess-kitty-dress',
+    level: 2,
+    type: 'dress',
+    color: '#FF7DB3',
+    pattern: 'Princess Kitty',
+    price: 50,
     sold: false,
   };
 }
@@ -196,7 +244,7 @@ function normaliseSave(value: Partial<GameState> | null): GameState {
     currentLevel: clampLevel(value.currentLevel ?? value.highestLevel ?? 1),
     lives: Math.max(0, Math.min(MAX_LIVES, value.lives ?? MAX_LIVES)),
     coins: Math.max(0, value.coins ?? 0),
-    gems: Math.max(0, value.gems ?? 230),
+    gems: Math.max(0, value.gems ?? 0),
     clothes: Array.isArray(value.clothes) ? value.clothes : [],
     lastLifeRefresh: value.lastLifeRefresh ?? Date.now(),
   });
@@ -413,74 +461,31 @@ function GameLogo({ compact = false }: { compact?: boolean }) {
 
 function LoadingScreen() {
   const progress = useRef(new Animated.Value(0)).current;
-  const sparkleY = useBounce(0, 8);
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(progress, {
-          toValue: 1,
-          duration: 1900,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: false,
-        }),
-        Animated.timing(progress, {
-          toValue: 0.12,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }),
-      ]),
-    ).start();
+    progress.setValue(0);
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 5000,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
   }, [progress]);
 
   const width = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['10%', '96%'],
+    outputRange: ['3%', '96%'],
   });
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <View style={styles.loadingScene}>
-        <SparkleField count={34} />
-        <View style={styles.loadingBackdropGlow} />
-        <StringLights />
-        <CollageSticker label="button" color={palette.lavender} style={styles.loadingStickerButton} />
-        <CollageSticker label="candy" color={palette.pinkDeep} style={styles.loadingStickerCandy} />
-        <CollageSticker label="yarn" color="#F0549B" style={styles.loadingStickerYarn} />
-        <CollageSticker label="shirt" color={palette.yellow} style={styles.loadingStickerShirt} />
-        <CollageSticker label="skirt" color={palette.pink} style={styles.loadingStickerSkirt} />
-        <CollageSticker label="hanger" color={palette.peach} style={styles.loadingStickerHanger} />
-        <CollageSticker label="bow" color={palette.skyDeep} style={styles.loadingBow} />
-        <View style={styles.loadingCharactersTop}>
-          <MiniCharacter type="robotCat" />
-          <MiniCharacter type="redBoy" />
-          <MiniCharacter type="monster" />
+      <ImageBackground source={loadingBackgroundImage} resizeMode="cover" style={styles.loadingReferenceScene}>
+        <View style={styles.loadingReferenceBarTrack}>
+          <Animated.View style={[styles.loadingReferenceBarProgress, { width }]} />
+          <View style={styles.loadingReferenceBarGlow} />
         </View>
-        <Animated.View style={[styles.loadingCenterSparkle, { transform: [{ translateY: sparkleY }] }]}>
-          <Text style={styles.loadingCenterSparkleText}>magic stitch glow</Text>
-        </Animated.View>
-        <GameLogo />
-        <View style={styles.loadingCharactersBottom}>
-          <MiniCharacter type="goofyCat" />
-          <MiniCharacter type="duo" />
-          <MiniCharacter type="doll" />
-          <MiniCharacter type="car" />
-        </View>
-        <View style={styles.loadingDecorCloud}>
-          {['dress', 'shirt', 'skirt', 'hanger', 'puzzle', 'candy', 'buttons', 'stars', 'hearts', 'bags'].map((label, index) => (
-            <View key={label} style={[styles.tinyDecorPill, { backgroundColor: itemColors[index % itemColors.length] }]}>
-              <Text style={styles.tinyDecorText}>{label}</Text>
-            </View>
-          ))}
-        </View>
-        <View style={styles.loadingBarFrame}>
-          <Animated.View style={[styles.loadingBarFill, { width }]} />
-          <View style={styles.loadingBarShine} />
-        </View>
-        <Text style={styles.loadingWaitText}>Loading... Please wait ❤️</Text>
-      </View>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -577,7 +582,7 @@ function HomeActionRail({ onOpen }: { onOpen: (screen: Screen) => void }) {
   return (
     <View style={styles.homeActionRail}>
       <HomeAction label="gift" title="Daily" onPress={() => onOpen('settings')} />
-      <HomeAction label="spin" title="Spin" onPress={() => onOpen('levels')} />
+      <HomeAction label="levels" title="Levels" onPress={() => onOpen('levels')} />
       <HomeAction label="tasks" title="Tasks" onPress={() => onOpen('settings')} />
     </View>
   );
@@ -1000,6 +1005,34 @@ function Customer({ request }: { request: FashionItem | null }) {
   );
 }
 
+function CustomerSprite({ index }: { index: number }) {
+  const frameWidth = 112;
+  const frameHeight = 166;
+  const sheetWidth = frameWidth * 5;
+  const sheetHeight = sheetWidth * (1190 / 1322);
+  const rowHeight = sheetHeight / 2;
+  const column = index % 5;
+  const row = Math.floor(index / 5) % 2;
+
+  return (
+    <View style={[styles.customerSpriteFrame, { width: frameWidth, height: frameHeight }]}>
+      <Image
+        source={customerSpriteSheet}
+        resizeMode="stretch"
+        style={[
+          styles.customerSpriteSheet,
+          {
+            width: sheetWidth,
+            height: sheetHeight,
+            left: -column * frameWidth,
+            top: -row * rowHeight,
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
 function Header({
   title,
   onBack,
@@ -1030,124 +1063,67 @@ function HomeScreen({
   game: GameState;
   onOpen: (screen: Screen) => void;
 }) {
-  const refresh = formatRefreshClock(game.lastLifeRefresh, game.lives);
-  const itemsCreated = game.clothes.length;
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={styles.homeRoot}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.homeScroll}>
-          <StringLights />
-          <View style={styles.homeSky}>
-            <SparkleField count={42} dark />
-            <View style={styles.nightGlowTop} />
-            <View style={styles.distantVillage}>
-              {Array.from({ length: 10 }).map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.distantHouse,
-                    {
-                      height: 24 + (index % 4) * 8,
-                      backgroundColor: index % 2 === 0 ? '#5D4AA0' : '#7D4FA7',
-                    },
-                  ]}
-                >
-                  <View style={styles.distantWindow} />
-                </View>
-              ))}
-            </View>
-            <FerrisWheel />
-            <HotAirBalloon color={palette.pink} delay={0} style={styles.homeBalloonOne} />
-            <HotAirBalloon color={palette.lavender} delay={700} style={styles.homeBalloonTwo} />
-            <Firework delay={150} style={styles.fireworkOne} />
-            <Firework delay={900} style={styles.fireworkTwo} />
-            <FloatingShape color={palette.yellow} delay={300} label="star" style={styles.homeStarOne} />
-            <FloatingShape color={palette.pink} delay={650} label="heart" style={styles.homeHeartOne} />
-            <FloatingShape color={palette.mint} delay={950} label="bow" style={styles.homeBowOne} />
-
-            <View style={styles.topHud}>
-              <PlayerProfile level={game.highestLevel} />
-              <ResourceStack game={game} refresh={refresh} onOpen={onOpen} />
-            </View>
-
-            <View style={styles.homeBoardFrame}>
-              <HomeActionRail onOpen={onOpen} />
-              <View style={styles.fairyLightBridge}>
-                {Array.from({ length: 13 }).map((_, index) => (
-                  <View key={index} style={[styles.bridgeLight, { backgroundColor: itemColors[index % itemColors.length] }]} />
-                ))}
-              </View>
-              <GameLogo compact />
-              <View style={styles.funFairSign}>
-                <Text style={styles.funFairText}>Fun Fair</Text>
-                <Text style={styles.funFairHeart}>heart</Text>
-              </View>
-              <View style={styles.fairgroundScene}>
-              <View style={styles.pathway} />
-              <View style={styles.flowerPatchLeft}>
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <View key={index} style={[styles.flowerDot, { backgroundColor: itemColors[index % itemColors.length] }]} />
-                ))}
-              </View>
-              <View style={styles.flowerPatchRight}>
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <View key={index} style={[styles.flowerDot, { backgroundColor: itemColors[(index + 3) % itemColors.length] }]} />
-                ))}
-              </View>
-
-              <View style={styles.mainHousesRow}>
-                <HomeHouse
-                  title="PUZZLE HOUSE"
-                  action="PLAY PUZZLES"
-                  detail={`Levels: ${game.highestLevel}/100`}
-                  roofColor={palette.lilac}
-                  bodyColor="#E9DBFF"
-                  onPress={() => onOpen('puzzle')}
-                />
-                <HomeHouse
-                  title="BOUTIQUE HOUSE"
-                  action="GO TO BOUTIQUE"
-                  detail={`Items Created: ${itemsCreated}`}
-                  roofColor={palette.pinkDeep}
-                  bodyColor="#FFE0EC"
-                  fashion
-                  onPress={() => onOpen('boutique')}
-                />
-              </View>
-
-              <Fountain />
-              <View style={styles.homeCharacterStage}>
-                <View style={styles.leftCharacterCluster}>
-                  <MiniCharacter type="redBoy" small />
-                  <MiniCharacter type="robotCat" small />
-                </View>
-                <View style={styles.rightCharacterCluster}>
-                  <MiniCharacter type="duo" small />
-                  <MiniCharacter type="doll" small />
-                </View>
-              </View>
-              <CharacterParade />
-              <View style={styles.decorScatter}>
-                {['hearts', 'bows', 'stars', 'candy', 'yarn', 'buttons', 'skirts', 'hangers', 'puzzles'].map((label, index) => (
-                  <View key={label} style={[styles.scatterChip, { backgroundColor: itemColors[index % itemColors.length] }]}>
-                    <Text style={styles.scatterText}>{label}</Text>
-                  </View>
-                ))}
-              </View>
-              </View>
-            </View>
-
-            <View style={styles.conceptCard}>
-              <Text style={styles.conceptTitle}>Magical puzzle and fashion fair</Text>
-              <Text style={styles.conceptText}>
-                Win puzzle levels to unlock clothing designs, then sell them to boutique visitors for coins you can spend on continues.
-              </Text>
-            </View>
+        <ImageBackground source={homeBackgroundImage} resizeMode="cover" style={styles.homeReferenceBackground}>
+          <View pointerEvents="none" style={styles.homeLiveOverride}>
+            <Text style={styles.homeOverrideLarge}>{game.lives}</Text>
+            <Text style={styles.homeOverrideLarge}>FULL</Text>
           </View>
-        </ScrollView>
-        <BottomNav onOpen={onOpen} />
+          <View pointerEvents="none" style={styles.homeCoinsOverride}>
+            <Text style={styles.homeOverrideLarge}>{formatNumber(game.coins)}</Text>
+          </View>
+          <View pointerEvents="none" style={styles.homeGemsOverride}>
+            <Text style={styles.homeOverrideLarge}>{formatNumber(game.gems)}</Text>
+          </View>
+          <View pointerEvents="none" style={styles.homeLevelOverride}>
+            <Text style={styles.homeOverrideSmall}>Levels: {game.highestLevel}/100</Text>
+          </View>
+          <View pointerEvents="none" style={styles.homeItemsOverride}>
+            <Text style={styles.homeOverrideSmall}>Items: {game.clothes.length}</Text>
+          </View>
+
+          <TouchableOpacity
+            accessibilityLabel="Open Puzzle House levels"
+            activeOpacity={0.9}
+            onPress={() => onOpen('levels')}
+            style={[styles.homeReferenceTapZone, styles.homePuzzleHouseTap]}
+          />
+          <TouchableOpacity
+            accessibilityLabel="Open Boutique House"
+            activeOpacity={0.9}
+            onPress={() => onOpen('boutique')}
+            style={[styles.homeReferenceTapZone, styles.homeBoutiqueHouseTap]}
+          />
+          <TouchableOpacity
+            accessibilityLabel="Daily gift"
+            activeOpacity={0.9}
+            onPress={() => onOpen('settings')}
+            style={[styles.homeReferenceTapZone, styles.homeDailyTap]}
+          />
+          <TouchableOpacity
+            accessibilityLabel="Open levels"
+            activeOpacity={0.9}
+            onPress={() => onOpen('levels')}
+            style={[styles.homeReferenceTapZone, styles.homeLevelsTopTap]}
+          />
+          <TouchableOpacity
+            accessibilityLabel="Open tasks"
+            activeOpacity={0.9}
+            onPress={() => onOpen('settings')}
+            style={[styles.homeReferenceTapZone, styles.homeTasksTap]}
+          />
+
+          <View style={styles.homeBottomHitbar}>
+            <TouchableOpacity accessibilityLabel="Levels" onPress={() => onOpen('levels')} style={styles.homeBottomHit} />
+            <TouchableOpacity accessibilityLabel="Closet" onPress={() => onOpen('boutique')} style={styles.homeBottomHit} />
+            <TouchableOpacity accessibilityLabel="Play" onPress={() => onOpen('levels')} style={styles.homeBottomPlayHit} />
+            <TouchableOpacity accessibilityLabel="Shop" onPress={() => onOpen('boutique')} style={styles.homeBottomHit} />
+            <TouchableOpacity accessibilityLabel="Settings" onPress={() => onOpen('settings')} style={styles.homeBottomHit} />
+          </View>
+        </ImageBackground>
       </View>
     </SafeAreaView>
   );
@@ -1198,11 +1174,15 @@ function RewardModal({
   item,
   onNext,
   onBoutique,
+  bonusText,
 }: {
   item: FashionItem | null;
   onNext: () => void;
   onBoutique: () => void;
+  bonusText?: string;
 }) {
+  const rewardDisplayName = item?.id === 'level-2-princess-kitty-dress' ? 'Princess Kitty Dress' : null;
+
   return (
     <Modal transparent animationType="slide" visible={Boolean(item)}>
       <View style={styles.modalOverlay}>
@@ -1212,9 +1192,10 @@ function RewardModal({
             <>
               <FashionIcon item={item} size={100} />
               <Text style={styles.rewardName}>
-                Level {item.level} {item.pattern} {item.type}
+                {rewardDisplayName ?? `Level ${item.level} ${item.pattern} ${item.type}`}
               </Text>
               <Text style={styles.modalText}>The puzzle pattern is now ready for the boutique rack.</Text>
+              {bonusText ? <Text style={styles.rewardBonusText}>{bonusText}</Text> : null}
             </>
           ) : null}
           <View style={styles.rewardActions}>
@@ -1414,9 +1395,33 @@ function getLevelOneCounts(collectedIds: string[]) {
     red: 0,
     white: 0,
     black: 0,
+    yellow: 0,
+    pink: 0,
+    purple: 0,
   };
 
   levelOneCats.forEach((cat) => {
+    if (collectedIds.includes(cat.id)) {
+      counts[cat.color] += 1;
+    }
+  });
+
+  return counts;
+}
+
+function getLevelTwoCounts(collectedIds: string[]) {
+  const counts: Record<YarnColor, number> = {
+    blue: 0,
+    orange: 0,
+    red: 0,
+    white: 0,
+    black: 0,
+    yellow: 0,
+    pink: 0,
+    purple: 0,
+  };
+
+  levelTwoCats.forEach((cat) => {
     if (collectedIds.includes(cat.id)) {
       counts[cat.color] += 1;
     }
@@ -1429,7 +1434,7 @@ function YarnGoalPill({ color, count, collected }: { color: YarnColor; count: nu
   return (
     <View style={styles.yarnGoalPill}>
       <View style={[styles.yarnGoalSwatch, { backgroundColor: levelOneYarnColors[color] }]} />
-      <Text style={styles.yarnGoalText}>{color} yarn x{count}</Text>
+      <Text style={styles.yarnGoalText}>{color} wool x{count}</Text>
       <Text style={styles.yarnGoalCount}>{collected}/{count}</Text>
     </View>
   );
@@ -1475,23 +1480,35 @@ function LevelOneCatToken({
   onCollect: () => void;
 }) {
   const position = useRef(new Animated.ValueXY({ x: cat.start.x * scale, y: cat.start.y * scale })).current;
+  const opacity = useRef(new Animated.Value(1)).current;
   const color = levelOneYarnColors[cat.color];
 
   useEffect(() => {
-    Animated.timing(position, {
-      toValue: {
-        x: (collected ? cat.end.x : cat.start.x) * scale,
-        y: (collected ? cat.end.y : cat.start.y) * scale,
-      },
-      duration: collected ? 460 : 0,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [cat.end.x, cat.end.y, cat.start.x, cat.start.y, collected, position, scale]);
+    if (collected) {
+      Animated.sequence([
+        Animated.timing(position, {
+          toValue: { x: cat.end.x * scale, y: cat.end.y * scale },
+          duration: 460,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    opacity.setValue(1);
+    position.setValue({ x: cat.start.x * scale, y: cat.start.y * scale });
+  }, [cat.end.x, cat.end.y, cat.start.x, cat.start.y, collected, opacity, position, scale]);
 
   return (
-    <Animated.View style={[styles.levelOneCatTokenWrap, { transform: position.getTranslateTransform() }]}>
-      <TouchableOpacity activeOpacity={0.8} disabled={collected} onPress={onCollect} style={[styles.levelOneCatToken, { backgroundColor: color, opacity: collected ? 0.48 : 1 }]}>
+    <Animated.View style={[styles.levelOneCatTokenWrap, { opacity, transform: position.getTranslateTransform() }]}>
+      <TouchableOpacity activeOpacity={0.8} disabled={collected} onPress={onCollect} style={[styles.levelOneCatToken, { backgroundColor: color }]}>
         <View style={[styles.levelOneCatEar, styles.levelOneCatEarLeft, { borderBottomColor: color }]} />
         <View style={[styles.levelOneCatEar, styles.levelOneCatEarRight, { borderBottomColor: color }]} />
         <View style={[styles.levelOneCatFace, cat.color === 'black' && styles.darkCatFace]}>
@@ -1509,12 +1526,18 @@ function LevelOneCatToken({
 function LevelOneRobotPuzzle({ counts, complete }: { counts: Record<YarnColor, number>; complete: boolean }) {
   const totalCollected = Object.values(counts).reduce((sum, count) => sum + count, 0);
   const totalRequired = Object.values(levelOneGoal).reduce((sum, count) => sum + count, 0);
+  const visible = (color: LevelOneGoalColor) => counts[color] < levelOneGoal[color];
+  const opacityFor = (color: LevelOneGoalColor) => (visible(color) ? 1 : 0.08);
+  const blueProgress = counts.blue / levelOneGoal.blue;
 
   return (
-    <View style={[styles.levelOneRobot, complete && styles.levelOneRobotComplete]}>
-      <View style={styles.levelOneRobotEarLeft} />
-      <View style={styles.levelOneRobotEarRight} />
-      <View style={styles.levelOneRobotFace}>
+    <View style={[styles.levelOneRobot, complete && styles.levelOneRobotCleared]}>
+      <View style={[styles.levelOneRobotBlueLayer, { opacity: Math.max(0.08, 1 - blueProgress) }]} />
+      <View style={[styles.levelOneRobotEarLeft, { opacity: blueProgress >= 1 / 3 ? 0.08 : 1 }]} />
+      <View style={[styles.levelOneRobotEarRight, { opacity: blueProgress >= 2 / 3 ? 0.08 : 1 }]} />
+      <View style={[styles.levelOneRobotArmLeft, { opacity: blueProgress >= 1 ? 0.08 : 1 }]} />
+      <View style={[styles.levelOneRobotArmRight, { opacity: blueProgress >= 1 ? 0.08 : 1 }]} />
+      <View style={[styles.levelOneRobotFace, { opacity: counts.white >= 1 ? 0.08 : 1 }]}>
         <View style={styles.levelOneRobotEyes}>
           <View style={styles.levelOneRobotEye}>
             <View style={styles.levelOneRobotPupil} />
@@ -1523,22 +1546,182 @@ function LevelOneRobotPuzzle({ counts, complete }: { counts: Record<YarnColor, n
             <View style={styles.levelOneRobotPupil} />
           </View>
         </View>
-        <View style={styles.levelOneRobotNose} />
-        <View style={styles.levelOneRobotSmile} />
+        <View style={[styles.levelOneRobotNose, { opacity: opacityFor('red') }]} />
+        <View style={[styles.levelOneRobotMouth, { opacity: opacityFor('orange') }]} />
+        <View style={[styles.levelOneRobotSmile, { opacity: opacityFor('black') }]} />
+        <View style={[styles.levelOneWhiskerLeftTop, { opacity: opacityFor('black') }]} />
+        <View style={[styles.levelOneWhiskerLeftBottom, { opacity: opacityFor('black') }]} />
+        <View style={[styles.levelOneWhiskerRightTop, { opacity: opacityFor('black') }]} />
+        <View style={[styles.levelOneWhiskerRightBottom, { opacity: opacityFor('black') }]} />
       </View>
-      <View style={styles.levelOneRobotCollar}>
-        <View style={styles.levelOneRobotBell} />
+      <View style={[styles.levelOneRobotBelly, { opacity: counts.white >= 2 ? 0.08 : 1 }]} />
+      <View style={[styles.levelOneRobotCollar, { opacity: opacityFor('red') }]}>
+        <View style={[styles.levelOneRobotBell, { opacity: opacityFor('yellow') }]} />
       </View>
-      <View style={styles.levelOneYarnSlots}>
-        {(Object.keys(levelOneGoal) as YarnColor[]).map((color) =>
-          Array.from({ length: levelOneGoal[color] }).map((_, index) => {
-            const filled = index < counts[color];
-            return <View key={`${color}-${index}`} style={[styles.levelOneYarnSlot, { backgroundColor: filled ? levelOneYarnColors[color] : '#D7EAF2' }]} />;
-          }),
-        )}
-      </View>
-      <Text style={styles.levelOneRobotProgress}>{totalCollected}/{totalRequired} yarn</Text>
+      <Text style={styles.levelOneRobotProgress}>{totalCollected}/{totalRequired} wool cleared</Text>
     </View>
+  );
+}
+
+function LevelTwoBedroomDecor() {
+  return (
+    <View pointerEvents="none" style={styles.levelTwoBedroomDecor}>
+      <View style={styles.levelTwoCurtainLeft} />
+      <View style={styles.levelTwoCurtainRight} />
+      <View style={styles.levelTwoMirror}>
+        <View style={styles.levelTwoMirrorGlass} />
+      </View>
+      <View style={styles.levelTwoDressStand}>
+        <View style={styles.levelTwoDressTop} />
+        <View style={styles.levelTwoDressSkirt} />
+      </View>
+      <View style={styles.levelTwoBowDecor}>
+        <View style={styles.levelTwoBowWing} />
+        <View style={styles.levelTwoBowKnot} />
+        <View style={styles.levelTwoBowWing} />
+      </View>
+      <View style={styles.levelTwoSoftRug} />
+    </View>
+  );
+}
+
+function LevelTwoPrincessKittyPuzzle({ counts, complete }: { counts: Record<YarnColor, number>; complete: boolean }) {
+  const totalCollected = (Object.keys(levelTwoGoal) as LevelTwoGoalColor[]).reduce((sum, color) => sum + counts[color], 0);
+  const totalRequired = Object.values(levelTwoGoal).reduce((sum, count) => sum + count, 0);
+  const opacityForPart = (color: YarnColor, index = 0) => (counts[color] > index ? 0.06 : 0.82);
+
+  return (
+    <View style={[styles.levelTwoKittyPuzzle, complete && styles.levelTwoKittyPuzzleCleared]}>
+      <Image source={princessKittyImage} resizeMode="contain" style={styles.levelTwoKittyImage} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoWhitePatchOne, { opacity: opacityForPart('white', 0) }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoWhitePatchTwo, { opacity: opacityForPart('white', 1) }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoPinkPatchOne, { opacity: opacityForPart('pink', 0) }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoPinkPatchTwo, { opacity: opacityForPart('pink', 1) }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoPinkPatchThree, { opacity: opacityForPart('pink', 2) }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoPurplePatch, { opacity: opacityForPart('purple') }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoYellowPatch, { opacity: opacityForPart('yellow') }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoBluePatch, { opacity: opacityForPart('blue') }]} />
+      <View style={[styles.levelTwoWoolPatch, styles.levelTwoBlackPatch, { opacity: opacityForPart('black') }]} />
+      <Text style={styles.levelOneRobotProgress}>{totalCollected}/{totalRequired} wool cleared</Text>
+    </View>
+  );
+}
+
+function LevelTwoGameplayScreen({
+  game,
+  setGame,
+  onHome,
+  onBoutique,
+}: {
+  game: GameState;
+  setGame: React.Dispatch<React.SetStateAction<GameState>>;
+  onHome: () => void;
+  onBoutique: () => void;
+}) {
+  const { width } = useWindowDimensions();
+  const boardWidth = Math.min(360, width - 24);
+  const boardHeight = boardWidth * 1.24;
+  const scale = boardWidth / 360;
+  const [collectedIds, setCollectedIds] = useState<string[]>([]);
+  const [reward, setReward] = useState<FashionItem | null>(null);
+  const [message, setMessage] = useState('Slide each cat to collect matching Princess Kitty wool!');
+  const counts = getLevelTwoCounts(collectedIds);
+  const complete = collectedIds.length === levelTwoCats.length;
+  const movesLeft = 18 - collectedIds.length;
+
+  const winLevelTwo = () => {
+    if (reward) {
+      return;
+    }
+
+    const item = createPrincessKittyDress();
+    setReward(item);
+    setMessage('Princess Kitty is complete. Dress reward unlocked.');
+    setGame((previous) => {
+      const refreshed = applyLifeRefresh(previous);
+      const alreadyUnlocked = refreshed.clothes.some((clothing) => clothing.id === item.id);
+
+      return {
+        ...refreshed,
+        highestLevel: Math.max(refreshed.highestLevel, 3),
+        currentLevel: 2,
+        coins: refreshed.coins + 50,
+        gems: refreshed.gems + 5,
+        clothes: alreadyUnlocked ? refreshed.clothes : [...refreshed.clothes, item],
+      };
+    });
+  };
+
+  const collectCat = (cat: LevelOneCat) => {
+    if (reward || collectedIds.includes(cat.id)) {
+      return;
+    }
+
+    const nextCollected = [...collectedIds, cat.id];
+    setCollectedIds(nextCollected);
+    setMessage(`${cat.color} wool collected from Princess Kitty.`);
+
+    if (nextCollected.length === levelTwoCats.length) {
+      setTimeout(winLevelTwo, 520);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={[styles.levelOneScroll, styles.levelTwoScroll]} showsVerticalScrollIndicator={false}>
+        <View style={[styles.levelOneTopBar, styles.levelTwoTopBar]}>
+          <TouchableOpacity activeOpacity={0.82} onPress={onHome} style={styles.levelOneBackButton}>
+            <Text style={styles.levelOneBackText}>{'<'}</Text>
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.levelOneKicker}>LEVEL 2</Text>
+            <Text style={styles.levelOneTitle}>PRINCESS KITTY</Text>
+          </View>
+          <View style={styles.levelOneLivesPill}>
+            <Text style={styles.levelOneLivesText}>Moves {movesLeft}</Text>
+            <Text style={styles.levelOneTinyStat}>Coins +50 Gems +5</Text>
+          </View>
+        </View>
+
+        <View style={[styles.levelOneTutorialCard, styles.levelTwoTutorialCard]}>
+          <Text style={styles.levelOneTutorialPrimary}>Cats collect matching wool from Princess Kitty!</Text>
+          <Text style={styles.levelOneTutorialSecondary}>Clear all wool to unlock the Princess Kitty Dress.</Text>
+        </View>
+
+        <View style={styles.levelOneGoalPanel}>
+          {(Object.keys(levelTwoGoal) as LevelTwoGoalColor[]).map((color) => (
+            <YarnGoalPill key={color} color={color} count={levelTwoGoal[color]} collected={counts[color]} />
+          ))}
+        </View>
+
+        <View style={[styles.levelOneBoard, styles.levelTwoBoard, { width: boardWidth, height: boardHeight }]}>
+          <SparkleField count={26} />
+          <LevelTwoBedroomDecor />
+          <LevelTwoPrincessKittyPuzzle counts={counts} complete={complete} />
+
+          {levelTwoCats.map((cat) => (
+            <DottedGuideline key={`${cat.id}-path`} cat={cat} scale={scale} />
+          ))}
+
+          {levelTwoCats.map((cat) => (
+            <LevelOneCatToken key={cat.id} cat={cat} scale={scale} collected={collectedIds.includes(cat.id)} onCollect={() => collectCat(cat)} />
+          ))}
+        </View>
+
+        <Text style={styles.levelOneMessage}>{message}</Text>
+      </ScrollView>
+
+      <RewardModal
+        item={reward}
+        bonusText="+50 coins and +5 gems"
+        onNext={() => {
+          setReward(null);
+          setGame((previous) => ({ ...previous, currentLevel: 3 }));
+          onHome();
+        }}
+        onBoutique={onBoutique}
+      />
+    </SafeAreaView>
   );
 }
 
@@ -1559,9 +1742,10 @@ function LevelOneGameplayScreen({
   const scale = boardWidth / 360;
   const [collectedIds, setCollectedIds] = useState<string[]>([]);
   const [reward, setReward] = useState<FashionItem | null>(null);
-  const [message, setMessage] = useState('Slide the cats in the arrow direction!');
+  const [message, setMessage] = useState('Slide each cat to collect matching wool!');
   const counts = getLevelOneCounts(collectedIds);
   const complete = collectedIds.length === levelOneCats.length;
+  const movesLeft = 16 - collectedIds.length;
 
   const winLevelOne = () => {
     if (reward) {
@@ -1577,7 +1761,7 @@ function LevelOneGameplayScreen({
 
       return {
         ...refreshed,
-        highestLevel: Math.max(refreshed.highestLevel, 1),
+        highestLevel: Math.max(refreshed.highestLevel, 2),
         currentLevel: 1,
         clothes: alreadyUnlocked ? refreshed.clothes : [...refreshed.clothes, item],
       };
@@ -1591,7 +1775,7 @@ function LevelOneGameplayScreen({
 
     const nextCollected = [...collectedIds, cat.id];
     setCollectedIds(nextCollected);
-    setMessage(`${cat.color} yarn collected. Complete the wool puzzle.`);
+    setMessage(`${cat.color} wool collected from the robot-cat.`);
 
     if (nextCollected.length === levelOneCats.length) {
       setTimeout(winLevelOne, 520);
@@ -1607,45 +1791,38 @@ function LevelOneGameplayScreen({
           </TouchableOpacity>
           <View>
             <Text style={styles.levelOneKicker}>LEVEL 1</Text>
-            <Text style={styles.levelOneTitle}>Wool Robot-Cat Puzzle</Text>
+            <Text style={styles.levelOneTitle}>Collect Wool From Robot-Cat</Text>
           </View>
           <View style={styles.levelOneLivesPill}>
-            <Text style={styles.levelOneLivesText}>{game.lives} FULL</Text>
+            <Text style={styles.levelOneLivesText}>Moves {movesLeft}</Text>
+            <Text style={styles.levelOneTinyStat}>Coins 0 Gems 0</Text>
           </View>
         </View>
 
         <View style={styles.levelOneTutorialCard}>
-          <Text style={styles.levelOneTutorialPrimary}>Slide the cats in the arrow direction!</Text>
-          <Text style={styles.levelOneTutorialSecondary}>Collect all yarn and complete the wool puzzle!</Text>
+          <Text style={styles.levelOneTutorialPrimary}>Slide each cat to collect matching wool!</Text>
+          <Text style={styles.levelOneTutorialSecondary}>Collect all wool to clear the puzzle!</Text>
         </View>
 
         <View style={styles.levelOneGoalPanel}>
-          {(Object.keys(levelOneGoal) as YarnColor[]).map((color) => (
+          {(Object.keys(levelOneGoal) as LevelOneGoalColor[]).map((color) => (
             <YarnGoalPill key={color} color={color} count={levelOneGoal[color]} collected={counts[color]} />
           ))}
         </View>
 
         <View style={[styles.levelOneBoard, { width: boardWidth, height: boardHeight }]}>
           <SparkleField count={18} />
+          <View pointerEvents="none" style={styles.levelOneTileGrid}>
+            {Array.from({ length: 72 }).map((_, index) => (
+              <View key={index} style={styles.levelOneBoardTile} />
+            ))}
+          </View>
           <View style={styles.levelOneBoardGlow} />
           <LevelOneRobotPuzzle counts={counts} complete={complete} />
 
           {levelOneCats.map((cat) => (
             <DottedGuideline key={`${cat.id}-path`} cat={cat} scale={scale} />
           ))}
-
-          <View style={[styles.levelOneTargetZone, styles.levelOneTargetBlue]}>
-            <Text style={styles.levelOneTargetText}>blue</Text>
-          </View>
-          <View style={[styles.levelOneTargetZone, styles.levelOneTargetWarm]}>
-            <Text style={styles.levelOneTargetText}>warm</Text>
-          </View>
-          <View style={[styles.levelOneTargetZone, styles.levelOneTargetLight]}>
-            <Text style={styles.levelOneTargetText}>light</Text>
-          </View>
-          <View style={[styles.levelOneTargetZone, styles.levelOneTargetDark]}>
-            <Text style={styles.levelOneTargetText}>black</Text>
-          </View>
 
           {levelOneCats.map((cat) => (
             <LevelOneCatToken key={cat.id} cat={cat} scale={scale} collected={collectedIds.includes(cat.id)} onCollect={() => collectCat(cat)} />
@@ -1682,6 +1859,10 @@ function PuzzleScreen({
 
   if (level === 1) {
     return <LevelOneGameplayScreen game={game} setGame={setGame} onHome={onHome} onBoutique={onBoutique} />;
+  }
+
+  if (level === 2) {
+    return <LevelTwoGameplayScreen game={game} setGame={setGame} onHome={onHome} onBoutique={onBoutique} />;
   }
 
   const puzzle = useMemo(() => createPuzzle(level), [level]);
@@ -1891,79 +2072,85 @@ function BoutiqueScreen({
   setGame: React.Dispatch<React.SetStateAction<GameState>>;
   onHome: () => void;
 }) {
-  const unsoldItems = useMemo(() => game.clothes.filter((item) => !item.sold), [game.clothes]);
-  const [requestId, setRequestId] = useState<string | null>(unsoldItems[0]?.id ?? null);
-  const [reaction, setReaction] = useState('Tap the requested item on the rack to sell it.');
-  const request = unsoldItems.find((item) => item.id === requestId) ?? unsoldItems[0] ?? null;
+  const [requestIndex, setRequestIndex] = useState(0);
+  const [reaction, setReaction] = useState('A customer is waiting. Tap the requested clothing item.');
+  const currentRequest = boutiqueRequests[requestIndex % boutiqueRequests.length];
+  const customerName = ['Mia', 'Lulu', 'Pip', 'Nora', 'Toto', 'Kiki'][requestIndex % 6];
 
-  useEffect(() => {
-    if (!request && unsoldItems.length > 0) {
-      setRequestId(unsoldItems[0].id);
-    }
-
-    if (request && !unsoldItems.some((item) => item.id === request.id)) {
-      setRequestId(unsoldItems[0]?.id ?? null);
-    }
-  }, [request, unsoldItems]);
-
-  const sellItem = (item: FashionItem) => {
-    if (!request) {
-      setReaction('No customer is waiting for that item yet.');
+  const sellCustomerItem = (type: BoutiqueRequestType) => {
+    if (type !== currentRequest) {
+      setReaction(`${customerName} asked for a ${currentRequest}. Try that rack item.`);
       return;
     }
 
-    if (item.id !== request.id) {
-      setReaction(`Cute choice, but this visitor asked for the ${request.pattern} ${request.type}.`);
-      return;
-    }
-
+    const price = 18 + (requestIndex % 5) * 4;
     setGame((previous) => ({
       ...previous,
-      coins: previous.coins + item.price,
-      clothes: previous.clothes.map((clothing) => (clothing.id === item.id ? { ...clothing, sold: true } : clothing)),
+      coins: previous.coins + price,
     }));
-    setReaction(`Sold for ${item.price} coins. The customer loved the ${item.pattern} look.`);
-
-    const nextItem = unsoldItems.find((candidate) => candidate.id !== item.id);
-    setRequestId(nextItem?.id ?? null);
+    setReaction(`${customerName} loved the ${type}. Sold for ${price} coins.`);
+    setRequestIndex((previous) => previous + 1);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.screenRoot}>
-        <Header title="Boutique House" onBack={onHome} game={game} />
-        <Customer request={request} />
+      <ImageBackground source={house2ReferenceImage} resizeMode="cover" style={styles.house2ReferenceScene}>
+        <View style={styles.house2TopBar}>
+          <TouchableOpacity activeOpacity={0.78} onPress={onHome} style={styles.house2BackButton}>
+            <Text style={styles.house2BackText}>Back</Text>
+          </TouchableOpacity>
+          <View style={styles.house2TitlePill}>
+            <Text style={styles.house2TitleText}>House 2</Text>
+          </View>
+          <View style={styles.house2CurrencyPill}>
+            <Text style={styles.house2CurrencyText}>Coins {formatNumber(game.coins)}</Text>
+          </View>
+          <View style={styles.house2CurrencyPill}>
+            <Text style={styles.house2CurrencyText}>Gems {formatNumber(game.gems)}</Text>
+          </View>
+        </View>
 
-        <View style={styles.boutiqueCounter}>
-          <Text style={styles.sectionTitle}>Closet rack</Text>
+        <View style={styles.house2GoalCard}>
+          <Text style={styles.house2GoalTitle}>Goal</Text>
+          <Text style={styles.house2GoalText}>Sell 1 {currentRequest}</Text>
+          <Text style={styles.house2GoalCount}>0/1</Text>
+        </View>
+
+        <View style={styles.house2CustomerCard}>
+          <CustomerSprite index={requestIndex % 10} />
+          <View style={styles.speechBubble}>
+            <Text style={styles.speechTitle}>{customerName} is shopping</Text>
+            <Text style={styles.speechText}>Can I buy a cute {currentRequest}, please?</Text>
+          </View>
+        </View>
+
+        <View style={styles.house2RackHeader}>
+          <Text style={styles.sectionTitle}>Customer clothing rack</Text>
           <Text style={styles.helperText}>{reaction}</Text>
         </View>
 
-        {game.clothes.length === 0 ? (
-          <View style={styles.emptyBoutique}>
-            <Text style={styles.emptyTitle}>The racks are waiting.</Text>
-            <Text style={styles.emptyText}>Win puzzle levels to turn patterns into shirts, skirts, bags, hats, and more.</Text>
+        <ScrollView contentContainerStyle={styles.house2RackGrid} showsVerticalScrollIndicator={false}>
+          {boutiqueRequests.map((type, index) => (
+            <TouchableOpacity
+              key={type}
+              activeOpacity={0.78}
+              onPress={() => sellCustomerItem(type)}
+              style={[styles.rackItem, type === currentRequest && styles.requestedRackItem]}
+            >
+              <View style={[styles.customerClothingIcon, { backgroundColor: itemColors[index % itemColors.length] }]}>
+                <Text style={styles.customerClothingLetter}>{type.charAt(0).toUpperCase()}</Text>
+              </View>
+              <Text style={styles.itemName}>{type}</Text>
+              <Text style={styles.itemMeta}>{18 + (index % 5) * 4} coins</Text>
+            </TouchableOpacity>
+          ))}
+
+          <View style={styles.boutiqueUnlockedNote}>
+            <Text style={styles.emptyTitle}>Created clothes: {game.clothes.length}</Text>
+            <Text style={styles.emptyText}>Customer orders are ready. Sell the requested clothes and build your boutique coins.</Text>
           </View>
-        ) : (
-          <ScrollView contentContainerStyle={styles.rackGrid} showsVerticalScrollIndicator={false}>
-            {game.clothes.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={item.sold ? 1 : 0.78}
-                disabled={item.sold}
-                onPress={() => sellItem(item)}
-                style={[styles.rackItem, item.id === request?.id && styles.requestedRackItem, item.sold && styles.soldRackItem]}
-              >
-                <FashionIcon item={item} size={70} />
-                <Text style={styles.itemName}>{item.pattern}</Text>
-                <Text style={styles.itemMeta}>
-                  {item.type} - {item.sold ? 'sold' : `${item.price} coins`}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-      </View>
+        </ScrollView>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -2051,8 +2238,8 @@ function LevelsScreen({
         <ScrollView contentContainerStyle={styles.levelsScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.levelsGridPanel}>
             {Array.from({ length: LEVEL_COUNT }, (_, index) => index + 1).map((level) => {
-              const unlocked = level === 1;
-              const isCurrent = level === 1;
+              const unlocked = level <= game.highestLevel;
+              const isCurrent = level === clampLevel(game.currentLevel);
 
               return (
                 <TouchableOpacity
@@ -2191,7 +2378,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoadingIntroDone(true), 1600);
+    const timer = setTimeout(() => setLoadingIntroDone(true), 5000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -2251,17 +2438,149 @@ const styles = StyleSheet.create({
   },
   homeRoot: {
     flex: 1,
-    backgroundColor: '#24307C',
+    backgroundColor: '#101B74',
     overflow: 'hidden',
+  },
+  homeReferenceBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  homeReferenceTapZone: {
+    position: 'absolute',
+  },
+  homePuzzleHouseTap: {
+    left: '3%',
+    top: '34%',
+    width: '45%',
+    height: '37%',
+  },
+  homeBoutiqueHouseTap: {
+    right: '3%',
+    top: '34%',
+    width: '45%',
+    height: '37%',
+  },
+  homeDailyTap: {
+    right: '8%',
+    top: '9%',
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+  },
+  homeLevelsTopTap: {
+    right: '8%',
+    top: '18%',
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+  },
+  homeTasksTap: {
+    right: '8%',
+    top: '25.5%',
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+  },
+  homeBottomHitbar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '14%',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    paddingHorizontal: 4,
+  },
+  homeBottomHit: {
+    flex: 1,
+  },
+  homeBottomPlayHit: {
+    flex: 1.35,
+  },
+  homeLiveOverride: {
+    position: 'absolute',
+    left: '27%',
+    top: '2.4%',
+    minWidth: 118,
+    minHeight: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 238, 217, 0.96)',
+    borderWidth: 2,
+    borderColor: '#FFF7E8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  homeCoinsOverride: {
+    position: 'absolute',
+    left: '53%',
+    top: '2.35%',
+    minWidth: 104,
+    minHeight: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 238, 217, 0.96)',
+    borderWidth: 2,
+    borderColor: '#FFF7E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeGemsOverride: {
+    position: 'absolute',
+    right: '5%',
+    top: '2.35%',
+    minWidth: 82,
+    minHeight: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 238, 217, 0.96)',
+    borderWidth: 2,
+    borderColor: '#FFF7E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeLevelOverride: {
+    position: 'absolute',
+    left: '23%',
+    top: '66.7%',
+    minWidth: 126,
+    borderRadius: 14,
+    backgroundColor: 'rgba(104, 55, 31, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
+  homeItemsOverride: {
+    position: 'absolute',
+    right: '23%',
+    top: '66.7%',
+    minWidth: 104,
+    borderRadius: 14,
+    backgroundColor: 'rgba(104, 55, 31, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
+  homeOverrideLarge: {
+    color: '#653342',
+    fontSize: 17,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  homeOverrideSmall: {
+    color: palette.white,
+    fontSize: 12,
+    fontWeight: '900',
+    textAlign: 'center',
   },
   homeScroll: {
     paddingBottom: 112,
   },
   homeSky: {
-    minHeight: 884,
+    minHeight: 936,
     paddingHorizontal: 10,
     paddingBottom: 18,
-    backgroundColor: '#172D91',
+    backgroundColor: '#0E2E9F',
     overflow: 'hidden',
   },
   sparkleField: {
@@ -2287,6 +2606,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 34,
     overflow: 'hidden',
+  },
+  loadingReferenceScene: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FAB9EA',
+  },
+  loadingReferenceBarTrack: {
+    position: 'absolute',
+    left: '6.2%',
+    right: '6.2%',
+    bottom: 34,
+    height: 28,
+    borderRadius: 16,
+    backgroundColor: 'rgba(247, 251, 255, 0.9)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
+    overflow: 'hidden',
+    shadowColor: '#B0529A',
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  loadingReferenceBarProgress: {
+    height: '100%',
+    borderRadius: 14,
+    backgroundColor: '#FF5DAE',
+  },
+  loadingReferenceBarGlow: {
+    position: 'absolute',
+    top: 4,
+    left: 12,
+    right: 12,
+    height: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   loadingBackdropGlow: {
     position: 'absolute',
@@ -2699,15 +3055,16 @@ const styles = StyleSheet.create({
   },
   resourceStack: {
     flex: 1,
-    gap: 6,
+    gap: 5,
   },
   resourceCard: {
-    minHeight: 54,
-    borderRadius: 12,
-    backgroundColor: '#EAECF8',
+    minHeight: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF0DA',
     borderWidth: 3,
-    borderColor: palette.white,
-    padding: 6,
+    borderColor: '#F0B783',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -2772,7 +3129,7 @@ const styles = StyleSheet.create({
     right: -40,
     height: 280,
     borderRadius: 140,
-    backgroundColor: 'rgba(101, 87, 218, 0.34)',
+    backgroundColor: 'rgba(115, 98, 255, 0.42)',
   },
   distantVillage: {
     position: 'absolute',
@@ -2958,25 +3315,19 @@ const styles = StyleSheet.create({
   },
   homeBoardFrame: {
     marginTop: 10,
-    minHeight: 642,
-    borderRadius: 30,
-    borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.72)',
-    backgroundColor: 'rgba(58, 75, 161, 0.88)',
+    minHeight: 680,
+    borderRadius: 26,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
     paddingTop: 14,
-    paddingHorizontal: 8,
+    paddingHorizontal: 2,
     overflow: 'hidden',
-    shadowColor: '#061151',
-    shadowOpacity: 0.36,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
   },
   fairgroundScene: {
-    marginTop: -4,
-    minHeight: 456,
+    marginTop: -2,
+    minHeight: 504,
     borderRadius: 24,
-    backgroundColor: 'rgba(34, 49, 137, 0.34)',
+    backgroundColor: 'rgba(255, 204, 160, 0.12)',
     borderWidth: 0,
     overflow: 'hidden',
     paddingTop: 38,
@@ -3005,9 +3356,9 @@ const styles = StyleSheet.create({
   pathway: {
     position: 'absolute',
     alignSelf: 'center',
-    bottom: -90,
-    width: 190,
-    height: 344,
+    bottom: -116,
+    width: 230,
+    height: 410,
     borderRadius: 96,
     backgroundColor: '#FFD6B3',
     opacity: 0.92,
@@ -3054,23 +3405,23 @@ const styles = StyleSheet.create({
   bigHouseRoof: {
     width: 0,
     height: 0,
-    borderLeftWidth: 68,
-    borderRightWidth: 68,
-    borderBottomWidth: 72,
+    borderLeftWidth: 72,
+    borderRightWidth: 72,
+    borderBottomWidth: 76,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
   },
   bigHouseBody: {
     width: '100%',
-    minHeight: 238,
+    minHeight: 252,
     borderRadius: 22,
     borderWidth: 4,
     borderColor: palette.white,
     padding: 12,
     alignItems: 'center',
-    shadowColor: '#C58CD8',
-    shadowOpacity: 0.42,
-    shadowRadius: 14,
+    shadowColor: '#120A48',
+    shadowOpacity: 0.46,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 7,
   },
@@ -3108,8 +3459,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bigHouseTitle: {
-    color: '#6E4B61',
-    fontSize: 18,
+    color: '#9B225F',
+    fontSize: 19,
     fontWeight: '900',
     textAlign: 'center',
     marginTop: 10,
@@ -3123,9 +3474,9 @@ const styles = StyleSheet.create({
   },
   housePlayButton: {
     marginTop: 12,
-    borderRadius: 26,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    borderRadius: 28,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
     borderWidth: 3,
     borderColor: palette.white,
   },
@@ -3139,7 +3490,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: 150,
     height: 132,
-    marginTop: 2,
+    marginTop: 8,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
@@ -3410,8 +3761,8 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     bottom: 10,
-    minHeight: 76,
-    borderRadius: 28,
+    minHeight: 82,
+    borderRadius: 30,
     backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderWidth: 3,
     borderColor: palette.white,
@@ -3441,9 +3792,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   playNavButton: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     backgroundColor: palette.pinkDeep,
     borderWidth: 4,
     borderColor: palette.white,
@@ -4208,6 +4559,13 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
+  levelOneTinyStat: {
+    color: '#7C5A69',
+    fontSize: 8,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginTop: 1,
+  },
   levelOneTutorialCard: {
     marginTop: 10,
     borderRadius: 18,
@@ -4276,37 +4634,271 @@ const styles = StyleSheet.create({
   levelOneBoard: {
     alignSelf: 'center',
     marginTop: 12,
-    borderRadius: 26,
-    backgroundColor: '#DDF4FF',
-    borderWidth: 4,
-    borderColor: palette.white,
+    borderRadius: 22,
+    backgroundColor: '#5D351F',
+    borderWidth: 8,
+    borderColor: '#B4773A',
     overflow: 'hidden',
-    shadowColor: '#88BFD8',
-    shadowOpacity: 0.34,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
+    shadowColor: '#4A2518',
+    shadowOpacity: 0.48,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 7,
+  },
+  levelTwoScroll: {
+    backgroundColor: '#FFF0F8',
+  },
+  levelTwoTopBar: {
+    backgroundColor: '#FFD7EB',
+    borderColor: '#FFF7FD',
+  },
+  levelTwoTutorialCard: {
+    backgroundColor: '#FFF7FD',
+    borderColor: '#FFD7EB',
+  },
+  levelTwoBoard: {
+    backgroundColor: '#F7C6DF',
+    borderColor: '#E9A7CA',
+  },
+  levelTwoBedroomDecor: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#FFD7EB',
+  },
+  levelTwoCurtainLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 58,
+    height: '100%',
+    backgroundColor: 'rgba(255, 125, 179, 0.58)',
+    borderRightWidth: 4,
+    borderRightColor: 'rgba(255, 255, 255, 0.52)',
+  },
+  levelTwoCurtainRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 58,
+    height: '100%',
+    backgroundColor: 'rgba(255, 125, 179, 0.48)',
+    borderLeftWidth: 4,
+    borderLeftColor: 'rgba(255, 255, 255, 0.52)',
+  },
+  levelTwoMirror: {
+    position: 'absolute',
+    right: 68,
+    top: 42,
+    width: 70,
+    height: 106,
+    borderRadius: 36,
+    backgroundColor: '#F4C48A',
+    borderWidth: 4,
+    borderColor: '#FFF7E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  levelTwoMirrorGlass: {
+    width: 50,
+    height: 82,
+    borderRadius: 28,
+    backgroundColor: 'rgba(191, 233, 255, 0.7)',
+  },
+  levelTwoDressStand: {
+    position: 'absolute',
+    left: 66,
+    top: 48,
+    alignItems: 'center',
+  },
+  levelTwoDressTop: {
+    width: 38,
+    height: 34,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    backgroundColor: '#A98BFF',
+    borderWidth: 3,
+    borderColor: palette.white,
+  },
+  levelTwoDressSkirt: {
+    width: 80,
+    height: 58,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    backgroundColor: '#FF7DB3',
+    borderWidth: 3,
+    borderColor: palette.white,
+    marginTop: -1,
+  },
+  levelTwoBowDecor: {
+    position: 'absolute',
+    top: 155,
+    left: 120,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  levelTwoBowWing: {
+    width: 30,
+    height: 24,
+    borderRadius: 14,
+    backgroundColor: '#FF7DB3',
+    borderWidth: 3,
+    borderColor: palette.white,
+  },
+  levelTwoBowKnot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFE066',
+    marginHorizontal: -3,
+    zIndex: 2,
+  },
+  levelTwoSoftRug: {
+    position: 'absolute',
+    left: 44,
+    right: 44,
+    bottom: 24,
+    height: 86,
+    borderRadius: 46,
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  levelTwoKittyPuzzle: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 212,
+    height: 264,
+    marginLeft: -106,
+    marginTop: -124,
+    borderRadius: 34,
+    backgroundColor: 'rgba(255, 247, 253, 0.54)',
+    borderWidth: 4,
+    borderColor: 'rgba(255, 255, 255, 0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  levelTwoKittyPuzzleCleared: {
+    backgroundColor: 'rgba(255, 255, 255, 0.24)',
+  },
+  levelTwoKittyImage: {
+    width: 196,
+    height: 246,
+    zIndex: 2,
+  },
+  levelTwoWoolPatch: {
+    position: 'absolute',
+    borderWidth: 3,
+    borderColor: palette.white,
+    zIndex: 3,
+  },
+  levelTwoWhitePatchOne: {
+    left: 58,
+    top: 72,
+    width: 42,
+    height: 48,
+    borderRadius: 22,
+    backgroundColor: levelOneYarnColors.white,
+  },
+  levelTwoWhitePatchTwo: {
+    right: 58,
+    top: 74,
+    width: 42,
+    height: 48,
+    borderRadius: 22,
+    backgroundColor: levelOneYarnColors.white,
+  },
+  levelTwoPinkPatchOne: {
+    left: 82,
+    top: 26,
+    width: 48,
+    height: 34,
+    borderRadius: 20,
+    backgroundColor: levelOneYarnColors.pink,
+  },
+  levelTwoPinkPatchTwo: {
+    left: 66,
+    bottom: 66,
+    width: 76,
+    height: 46,
+    borderRadius: 24,
+    backgroundColor: levelOneYarnColors.pink,
+  },
+  levelTwoPinkPatchThree: {
+    right: 52,
+    bottom: 48,
+    width: 54,
+    height: 40,
+    borderRadius: 22,
+    backgroundColor: levelOneYarnColors.pink,
+  },
+  levelTwoPurplePatch: {
+    right: 34,
+    bottom: 94,
+    width: 52,
+    height: 42,
+    borderRadius: 22,
+    backgroundColor: levelOneYarnColors.purple,
+  },
+  levelTwoYellowPatch: {
+    left: 96,
+    top: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: levelOneYarnColors.yellow,
+  },
+  levelTwoBluePatch: {
+    left: 54,
+    bottom: 38,
+    width: 42,
+    height: 30,
+    borderRadius: 18,
+    backgroundColor: levelOneYarnColors.blue,
+  },
+  levelTwoBlackPatch: {
+    right: 64,
+    top: 128,
+    width: 48,
+    height: 8,
+    borderRadius: 5,
+    backgroundColor: levelOneYarnColors.black,
+  },
+  levelOneTileGrid: {
+    ...StyleSheet.absoluteFill,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 6,
+    opacity: 0.76,
+  },
+  levelOneBoardTile: {
+    width: '12.5%',
+    height: '11.11%',
+    borderRadius: 6,
+    backgroundColor: '#3A2519',
+    borderWidth: 1,
+    borderColor: '#68412B',
   },
   levelOneBoardGlow: {
     position: 'absolute',
-    left: 70,
-    right: 70,
-    top: 112,
-    bottom: 88,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255, 255, 255, 0.56)',
+    left: 46,
+    right: 46,
+    top: 124,
+    bottom: 80,
+    borderRadius: 120,
+    backgroundColor: 'rgba(54, 174, 235, 0.24)',
   },
   levelOneRobot: {
     position: 'absolute',
     left: '50%',
     top: '50%',
-    width: 138,
-    height: 150,
-    marginLeft: -69,
-    marginTop: -80,
-    borderRadius: 70,
+    width: 184,
+    height: 198,
+    marginLeft: -92,
+    marginTop: -94,
+    borderRadius: 92,
     backgroundColor: '#B8DFF3',
-    borderWidth: 5,
+    borderWidth: 6,
     borderColor: '#EFFBFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -4317,17 +4909,46 @@ const styles = StyleSheet.create({
     elevation: 4,
     zIndex: 2,
   },
-  levelOneRobotComplete: {
+  levelOneRobotCleared: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.55)',
+  },
+  levelOneRobotBlueLayer: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 92,
     backgroundColor: '#36AEEB',
-    borderColor: palette.yellow,
+  },
+  levelOneRobotArmLeft: {
+    position: 'absolute',
+    left: -14,
+    bottom: 48,
+    width: 42,
+    height: 62,
+    borderRadius: 22,
+    backgroundColor: '#36AEEB',
+    borderWidth: 4,
+    borderColor: '#EFFBFF',
+    transform: [{ rotate: '-18deg' }],
+  },
+  levelOneRobotArmRight: {
+    position: 'absolute',
+    right: -14,
+    bottom: 48,
+    width: 42,
+    height: 62,
+    borderRadius: 22,
+    backgroundColor: '#36AEEB',
+    borderWidth: 4,
+    borderColor: '#EFFBFF',
+    transform: [{ rotate: '18deg' }],
   },
   levelOneRobotEarLeft: {
     position: 'absolute',
-    top: -13,
-    left: 28,
-    width: 37,
-    height: 37,
-    borderRadius: 10,
+    top: -16,
+    left: 40,
+    width: 46,
+    height: 46,
+    borderRadius: 12,
     backgroundColor: '#36AEEB',
     borderWidth: 4,
     borderColor: '#EFFBFF',
@@ -4335,32 +4956,33 @@ const styles = StyleSheet.create({
   },
   levelOneRobotEarRight: {
     position: 'absolute',
-    top: -13,
-    right: 28,
-    width: 37,
-    height: 37,
-    borderRadius: 10,
+    top: -16,
+    right: 40,
+    width: 46,
+    height: 46,
+    borderRadius: 12,
     backgroundColor: '#36AEEB',
     borderWidth: 4,
     borderColor: '#EFFBFF',
     transform: [{ rotate: '24deg' }],
   },
   levelOneRobotFace: {
-    width: 104,
-    height: 88,
-    borderRadius: 46,
+    width: 138,
+    height: 118,
+    borderRadius: 60,
     backgroundColor: palette.white,
     alignItems: 'center',
-    paddingTop: 15,
+    paddingTop: 18,
+    zIndex: 3,
   },
   levelOneRobotEyes: {
     flexDirection: 'row',
     gap: 15,
   },
   levelOneRobotEye: {
-    width: 25,
-    height: 30,
-    borderRadius: 14,
+    width: 31,
+    height: 38,
+    borderRadius: 17,
     backgroundColor: palette.white,
     borderWidth: 3,
     borderColor: '#5F5663',
@@ -4374,32 +4996,99 @@ const styles = StyleSheet.create({
     backgroundColor: '#2F2A38',
   },
   levelOneRobotNose: {
-    width: 15,
-    height: 15,
-    borderRadius: 8,
+    position: 'absolute',
+    top: 52,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: palette.pinkDeep,
-    marginTop: 3,
+    zIndex: 4,
+  },
+  levelOneRobotMouth: {
+    position: 'absolute',
+    bottom: 12,
+    width: 70,
+    height: 27,
+    borderBottomLeftRadius: 35,
+    borderBottomRightRadius: 35,
+    backgroundColor: levelOneYarnColors.orange,
+    borderWidth: 3,
+    borderColor: '#F76D50',
   },
   levelOneRobotSmile: {
-    width: 36,
-    height: 17,
+    position: 'absolute',
+    top: 69,
+    width: 48,
+    height: 23,
     borderBottomWidth: 3,
     borderBottomColor: palette.cocoa,
     borderRadius: 17,
   },
+  levelOneWhiskerLeftTop: {
+    position: 'absolute',
+    left: 10,
+    top: 62,
+    width: 44,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: levelOneYarnColors.black,
+    transform: [{ rotate: '-10deg' }],
+  },
+  levelOneWhiskerLeftBottom: {
+    position: 'absolute',
+    left: 10,
+    top: 80,
+    width: 44,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: levelOneYarnColors.black,
+    transform: [{ rotate: '10deg' }],
+  },
+  levelOneWhiskerRightTop: {
+    position: 'absolute',
+    right: 10,
+    top: 62,
+    width: 44,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: levelOneYarnColors.black,
+    transform: [{ rotate: '10deg' }],
+  },
+  levelOneWhiskerRightBottom: {
+    position: 'absolute',
+    right: 10,
+    top: 80,
+    width: 44,
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: levelOneYarnColors.black,
+    transform: [{ rotate: '-10deg' }],
+  },
+  levelOneRobotBelly: {
+    position: 'absolute',
+    bottom: 26,
+    width: 88,
+    height: 54,
+    borderRadius: 34,
+    backgroundColor: palette.white,
+    borderWidth: 4,
+    borderColor: '#EFFBFF',
+    zIndex: 2,
+  },
   levelOneRobotCollar: {
     position: 'absolute',
-    bottom: 24,
-    width: 78,
-    height: 10,
+    bottom: 34,
+    width: 104,
+    height: 13,
     borderRadius: 6,
     backgroundColor: palette.pinkDeep,
     alignItems: 'center',
+    zIndex: 5,
   },
   levelOneRobotBell: {
-    width: 19,
-    height: 19,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: palette.yellow,
     borderWidth: 3,
     borderColor: palette.white,
@@ -4407,25 +5096,25 @@ const styles = StyleSheet.create({
   },
   levelOneYarnSlots: {
     position: 'absolute',
-    bottom: 6,
-    left: 18,
-    right: 18,
+    bottom: 9,
+    left: 22,
+    right: 22,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 4,
   },
   levelOneYarnSlot: {
-    width: 15,
-    height: 15,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 2,
     borderColor: palette.white,
   },
   levelOneRobotProgress: {
     position: 'absolute',
-    bottom: -24,
-    color: palette.cocoa,
+    bottom: -26,
+    color: palette.white,
     fontSize: 11,
     fontWeight: '900',
   },
@@ -4436,10 +5125,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   guidelineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(108, 79, 95, 0.38)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
   },
   levelOneTargetZone: {
     position: 'absolute',
@@ -4472,6 +5161,11 @@ const styles = StyleSheet.create({
     top: 245,
     backgroundColor: '#D9D2DF',
   },
+  levelOneTargetYellow: {
+    left: 140,
+    top: 248,
+    backgroundColor: '#FFF0A7',
+  },
   levelOneTargetText: {
     color: palette.cocoa,
     fontSize: 10,
@@ -4485,9 +5179,9 @@ const styles = StyleSheet.create({
     zIndex: 4,
   },
   levelOneCatToken: {
-    width: 58,
-    height: 60,
-    borderRadius: 24,
+    width: 64,
+    height: 66,
+    borderRadius: 25,
     borderWidth: 3,
     borderColor: palette.white,
     alignItems: 'center',
@@ -4540,8 +5234,8 @@ const styles = StyleSheet.create({
   },
   levelOneCatArrow: {
     color: palette.cocoa,
-    fontSize: 18,
-    lineHeight: 20,
+    fontSize: 22,
+    lineHeight: 23,
     fontWeight: '900',
   },
   darkCatArrow: {
@@ -4755,6 +5449,13 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 10,
   },
+  rewardBonusText: {
+    color: palette.pinkDeep,
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginTop: 6,
+  },
   customerCard: {
     marginTop: 12,
     borderRadius: 8,
@@ -4765,6 +5466,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  boutiqueCustomerCard: {
+    marginTop: 12,
+    borderRadius: 18,
+    backgroundColor: '#EAFBFF',
+    borderWidth: 3,
+    borderColor: palette.white,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: palette.softShadow,
+    shadowOpacity: 0.26,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  customerSpriteFrame: {
+    borderRadius: 24,
+    backgroundColor: '#FFF8EC',
+    borderWidth: 3,
+    borderColor: palette.white,
+    overflow: 'hidden',
+    shadowColor: palette.softShadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  customerSpriteSheet: {
+    position: 'absolute',
   },
   customerFace: {
     width: 82,
@@ -4825,6 +5557,147 @@ const styles = StyleSheet.create({
     marginTop: 14,
     alignItems: 'center',
   },
+  house2ReferenceScene: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+  },
+  house2TopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 54,
+  },
+  house2BackButton: {
+    width: 58,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF6F91',
+    borderWidth: 3,
+    borderColor: '#FFE7B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#5A2E3D',
+    shadowOpacity: 0.26,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  house2BackText: {
+    color: palette.white,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  house2TitlePill: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 18,
+    backgroundColor: 'rgba(178, 128, 255, 0.94)',
+    borderWidth: 3,
+    borderColor: '#F6D6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  house2TitleText: {
+    color: palette.white,
+    fontSize: 22,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    textShadowColor: 'rgba(64, 40, 93, 0.36)',
+    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 2 },
+  },
+  house2CurrencyPill: {
+    minWidth: 82,
+    minHeight: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 238, 217, 0.96)',
+    borderWidth: 3,
+    borderColor: '#E7B479',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  house2CurrencyText: {
+    color: palette.cocoa,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  house2GoalCard: {
+    position: 'absolute',
+    right: 12,
+    top: 76,
+    width: 142,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 248, 232, 0.96)',
+    borderWidth: 3,
+    borderColor: '#F5B06F',
+    overflow: 'hidden',
+    alignItems: 'center',
+    shadowColor: '#5A2E3D',
+    shadowOpacity: 0.2,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  house2GoalTitle: {
+    width: '100%',
+    backgroundColor: palette.pinkDeep,
+    color: palette.white,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '900',
+    paddingVertical: 6,
+  },
+  house2GoalText: {
+    color: '#5A4A8A',
+    fontSize: 15,
+    fontWeight: '900',
+    textAlign: 'center',
+    paddingHorizontal: 8,
+    paddingTop: 10,
+  },
+  house2GoalCount: {
+    color: palette.cocoa,
+    fontSize: 24,
+    fontWeight: '900',
+    paddingBottom: 10,
+  },
+  house2CustomerCard: {
+    marginTop: 118,
+    alignSelf: 'flex-start',
+    width: '72%',
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 248, 232, 0.94)',
+    borderWidth: 3,
+    borderColor: palette.white,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#5A2E3D',
+    shadowOpacity: 0.22,
+    shadowRadius: 9,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+  },
+  house2RackHeader: {
+    marginTop: 'auto',
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 248, 232, 0.92)',
+    borderWidth: 3,
+    borderColor: '#FFD8B8',
+    padding: 10,
+    alignItems: 'center',
+  },
+  house2RackGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingTop: 10,
+    paddingBottom: 24,
+    justifyContent: 'center',
+  },
   emptyBoutique: {
     marginTop: 18,
     borderRadius: 8,
@@ -4883,6 +5756,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     marginTop: 3,
+  },
+  customerClothingIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    borderWidth: 4,
+    borderColor: palette.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: palette.softShadow,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  customerClothingLetter: {
+    color: palette.white,
+    fontSize: 32,
+    fontWeight: '900',
+    textShadowColor: 'rgba(108, 79, 95, 0.3)',
+    textShadowRadius: 3,
+    textShadowOffset: { width: 0, height: 2 },
+  },
+  boutiqueUnlockedNote: {
+    width: '100%',
+    borderRadius: 16,
+    backgroundColor: '#FFF7E8',
+    borderWidth: 3,
+    borderColor: palette.white,
+    padding: 14,
+    alignItems: 'center',
   },
   levelsRoot: {
     flex: 1,
